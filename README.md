@@ -1,6 +1,10 @@
 # HbA1c_MCT
 Examine association between glycated hemoglogin and cortical thickness in adults
 
+- Data cleaning and manipulation
+  1. List of variables downloaded:
+  2. List of variables to be created:
+  
 - Methods
   1. Sample characteristics
       1. Sample selection: individuals with HbA1c and MRI data (data download date: XX-XX-2020)
@@ -19,3 +23,7 @@ Examine association between glycated hemoglogin and cortical thickness in adults
   7. Regional association plots (LocusZoom)
   8. Genomic landscape
   9. Look up genes associated with the top locus in the brain cortex (GTEx database)
+  10. Identify genes that are co-expressed with each of the eQTL-genes in brain cortex during adulthood (BrainSpan and harmonized database [by Nadine])
+  11. Over-representation tests for the co-expressed genes of each eQTL-gene.
+  12. Genetic correlations: AD and BMI
+  13. Associations between PC1 and AD-PRS/BMI-PRS
