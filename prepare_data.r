@@ -1,7 +1,7 @@
-## ----load_packages---------------------------------------------------------------------------------------------------------------------------
-# ====  UKB | Participant Characteristic Table =======================================================
-# This script will create a merged data set and a participant characteristic table
-# https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html
+## ----load_packages---------------------------------------------------------------------
+# This script will create a merged data set 
+#---------------------------------------------------------------------------------------#
+
 options(stringsAsFactors = F)
 library(stringr)
 library(data.table)
