@@ -17,7 +17,7 @@ library(arsenal)
 library(here)
 library(mgsub)
 library(psych)
-wd = '~/OneDrive - SickKids/ukbb_insulin_resistance/'
+wd = '~/OneDrive - SickKids/ukbb_insulin_resistance'
 
 ## ----load_data-------------------------------------------------------------------------------------------------------------------------------
 setwd(wd)
@@ -86,14 +86,4 @@ idata$DBP1 = apply(data.frame(subset(idata,select=c(DBP1.1,DBP1.2))),1,mean,na.r
 idata = idata %>% mutate(Age.c = Age_MRI - mean(Age_MRI),
                          Time = Age_MRI - age_base,
                          Time.c = Time - mean(Time))
-
-# Participant characteristic table ------------------------------------------------------
-tab1 = CreateTableOne(data = subset(idata,select=-eid),strata = 'Sex')
-print(tab1,nonnormal = c('Age_MRI','BMI_recruitment','BMI_adjAge',
-                         'SBP',"SBP_adjAge",
-                         'DBP',"DBP_adjAge",
-                         'HbA1c2','HbA1c_adjAge',
-                         'WMH','WMH_adjAge',
-                         "ICV","ICV_adjAge",
-                         'logWMH','logWMH_adjAge',
-                         "MCT","MCT_adjAge"))
+save(idata,file=file.path(wd,"idata.Rd"))
