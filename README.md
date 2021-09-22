@@ -1,5 +1,5 @@
 # HbA1c_MCT
-Examine association between glycated hemoglogin and cortical thickness in adults
+Examine association between glycated hemoglobin and cortical thickness in adults
 
 - Data cleaning and manipulation
   1. List of variables downloaded:
