@@ -8,25 +8,18 @@
 # 
 #---------------------------------------------------------------------------------------#
 options(stringsAsFactors = F)
-library(stringr)
-library(data.table)
-library(tidyverse)
-library(tableone)
-library(dplyr)
-library(grid)
-library(gratia)
-library(gridExtra)
-library(GenABEL)
-# for tables
-library(arsenal)
-library(here)
-library(mgsub)
-library(psych)
+x = c('stringr','tidyverse','dplyr',
+      'here','data.table','psych',#table
+      'GenABEL','mgcv',#rntransform
+      'tableone','arsenal',#table
+      'ggplot2','patchwork','pheatmap')#visualization
+lapply(x,require,character.only=T);rm(x)
+
 wd = '~/OneDrive - SickKids/ukbb_insulin_resistance'
 load(file.path(wd,"idata_wi_MCT_adjBase.Rd"))
 setwd(wd)
 
-# EduLevel ------------------------------------------------------------------------------
+# EduLevel---------------------------------------------------------------------
 idata$MCT_adjBaseEduLevel <- NA
 fitF=lm(MCT_adjBase~EduLevel,data=idata,subset = Sex=="Female",
         na.action = na.exclude)
@@ -55,7 +48,7 @@ p.MCT.adj = ggplot(subset(idata,!is.na(EduLevel)),
 grid.arrange(p,p.MCT,p.MCT.adj)
 
 
-# MCT_HBA1c_BMI-------------------------------------------------------------------------
+# BMI--------------------------------------------------------------------------
 ## adjust MCT for log-BMI using gam
 idata$logBMI = log(idata$BMI_recruitment)
 idata <- idata %>% mutate(logBMI = logBMI-mean(logBMI,na.rm=T))
@@ -124,7 +117,7 @@ grid.arrange(p1.MCT,p2.MCT,nrow=1)
 dev.off()
 rm(p.BMI,p1.MCT,p2.MCT,p1,p2)
 
-## ----Smoking---------------------------------------------------------------------------------------------------------------------------------
+# Smoking----------------------------------------------------------------------
 idata$MCT_adjBaseSmoking <- NA
 fitF=lm(MCT_adjBase~Smoking,data=idata,subset = Sex=="Female",
         na.action = na.exclude)
@@ -152,7 +145,7 @@ p.MCT.adj = ggplot(subset(idata,!is.na(Smoking)),
 grid.arrange(p,p.MCT,p.MCT.adj)
 rm(p,p.MCT,p.MCT.adj)
 
-# adjSBP---------------------------------------------------------------------------------
+# SBP0-------------------------------------------------------------------------
 idata = idata %>% mutate(SBP.c = SBP0-mean(SBP0,na.rm=T))
 idata.F = na.omit(subset(idata,select=c(eid,MCT_adjBase,Sex,SBP0,SBP.c),Sex=="Female"))
 idata.M = na.omit(subset(idata,select=c(eid,MCT_adjBase,Sex,SBP0,SBP.c),Sex=="Male"))
@@ -208,7 +201,7 @@ png(paste("Plots/SBP_MCT_rntHbA1c.png",sep=""),
 grid.arrange(p1.MCT,p2.MCT,nrow=1)
 dev.off()
 
-# adjust for SBP ------------------------------------------------------------------------
+# SBP1-------------------------------------------------------------------------
 idata = idata %>% mutate(SBP1.c = SBP1-mean(SBP1,na.rm=T))
 idata.F = na.omit(subset(idata,select=c(eid,MCT_adjBase,Sex,SBP1,SBP1.c),Sex=="Female"))
 idata.M = na.omit(subset(idata,select=c(eid,MCT_adjBase,Sex,SBP1,SBP1.c),Sex=="Male"))
@@ -253,16 +246,15 @@ p1.MCT = idata %>% ggplot(aes(x=SBP1,y=MCT_adjBase,color=Sex,fill=Sex))+
 p2.MCT = idata %>% ggplot(aes(x=rntHbA1c,y=MCT_adjBaseSBP1,color=Sex,fill=Sex))+
   scale_color_manual(values = c("Female"= 'darkred','Male'="darkblue")) + 
   theme(legend.position = 'none') + geom_point(alpha=0.1) + geom_smooth()
-grid.arrange(p1.MCT,p2.MCT,nrow=2)
+p1.MCT+p2.MCT
 
 png(paste("Plots/SBP1_MCT_rntHbA1c.png",sep=""),
     width=8,height=3.25, units = "in", res=300)
-grid.arrange(p1.MCT,p2.MCT,nrow=1)
+print(p1.MCT+p2.MCT)
 dev.off()
 rm(p1.MCT,p2.MCT,p1,p2);gc(reset=T)
 
-
-# adjust for All ------------------------------------------------------------------------
+# AllCov-----------------------------------------------------------------------
 idata.F = na.omit(subset(idata,select=c(eid,MCT,Age.c,Time.c,MRI_Site,SBP.c,MCT_adjBase,Sex,EduLevel,logBMI,Smoking,SBP),Sex=="Female"))
 idata.M = na.omit(subset(idata,select=c(eid,MCT,Age.c,Time.c,MRI_Site,SBP.c,MCT_adjBase,Sex,EduLevel,logBMI,Smoking,SBP),Sex=="Male"))
 modF_adjall <- gam(MCT ~ s(Age.c) + s(Time.c) + MRI_Site + EduLevel + s(logBMI) + Smoking + s(SBP.c), data = idata.F)
@@ -296,7 +288,8 @@ p.MCT = idata %>% ggplot(aes(x=SBP1,y=MCT_adjall,color=Sex,fill=Sex))+
   scale_color_manual(values = c("Female"= 'darkred','Male'="darkblue")) + 
   theme(legend.position = 'none')
 
-p.MCT + geom_point(alpha=0.3) + geom_smooth()
-p.MCT + geom_smooth()
+p1 = p.MCT + geom_point(alpha=0.3) + geom_smooth()
+p2 = p.MCT + geom_smooth()
+p1+p2;rm(p1,p2)
 
 save(idata,file=file.path(wd,"idata_wi_MCT_adjAll.Rd"))
