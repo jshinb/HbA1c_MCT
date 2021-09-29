@@ -6,20 +6,12 @@
 # 
 #---------------------------------------------------------------------------------------#
 options(stringsAsFactors = F)
-library(stringr)
-library(data.table)
-library(tidyverse)
-library(tableone)
-library(dplyr)
-library(grid)
-library(gratia)
-library(gridExtra)
-library(GenABEL)
-# for tables
-library(arsenal)
-library(here)
-library(mgsub)
-library(psych)
+x = c('stringr','tidyverse','dplyr',
+      'here','data.table','psych',#table
+      'GenABEL','mgcv',#rntransform
+      'tableone','arsenal',#table
+      'ggplot2','patchwork','pheatmap')#visualization
+lapply(x,require,character.only=T);rm(x)
 wd = '~/OneDrive - SickKids/ukbb_insulin_resistance'
 load(file.path(wd,"idata.Rd"))
 
@@ -212,3 +204,13 @@ dev.off()
 rm(p.high,p.MCTadj.rntHbA1c,p.normal)
 
 save(idata, file=file.path(wd,"idata_wi_MCT_adjBase.Rd"))
+
+#------------------------------------------------------------------------------
+idata = idata %>% mutate(x2 = as.numeric(HbA1c.Level3=="High"))
+idata$x2.star = idata$x2
+idata$x2.star[idata$Sex=="Male"] = (idata$rntHbA1c[idata$Sex=="Male"]-cutoffM)*idata$x2[idata$Sex=="Male"]
+idata$x2.star[idata$Sex=="Female"] = (idata$rntHbA1c[idata$Sex=="Female"]-cutoffF)*idata$x2[idata$Sex=="Female"]
+fitM = lm(MCT_adjBase ~ rntHbA1c + x2.star, data=idata, subset=Sex=="Male")
+fitF = lm(MCT_adjBase ~ rntHbA1c + x2.star, data=idata, subset=Sex=="Female")
+fitI = lm(MCT_adjBase ~ Sex*(rntHbA1c + x2.star), data=idata)
+summary(fitM)
