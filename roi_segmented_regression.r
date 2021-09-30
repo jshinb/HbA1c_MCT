@@ -326,7 +326,7 @@ ggp1 = p +
          color = guide_legend(override.aes = list(size=4,linetype=1))) + 
   theme(legend.key.size = unit(1.5, "cm"))
 
-# plot: create png file -----------------------------------------------------------------
+# plot: create png file -------------------------------------------------------
 png(paste('Plots/HbA1cLevels_roi_base_',Sys.Date(),'.png',sep=''),
     width=(12*1.75),height=(12*1.5),units='in',res=300)
 print(ggp1+theme(strip.text.y.left = element_text(angle = 0,size=24)))
@@ -338,6 +338,9 @@ profiles_to_write = subset(res_Base_Horizontal,select=c(roi,beta.x,beta.y,beta))
 (cor(subset(profiles_to_write,select=-roi)))#0.7283397 (wo Age2) #r=0.73069792 (wi Age2)
 write_tsv(profiles_to_write,
           paste("~/OneDrive - SickKids/ukbb_insulin_resistance/Results_Tables/res_Base_HighHbA1c_",Sys.Date(),".tsv",sep=""))
+
+# save data for the next step -------------------------------------------------
+save(idata, file=file.path(wd,"idata_wi_roiCT_adjBase.Rd"))
 
 dont.run <- function(){
   # test ----------------------------------------------------------------------
