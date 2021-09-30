@@ -380,14 +380,26 @@ dont.run <- function(){
   fit_BaseI = lm(y.resid ~ Sex*(rntHbA1c2 + x2.star), data=resid.data)
   fit_BaseC = lm(y.resid ~ Sex + rntHbA1c2 + x2.star, data=resid.data)
   
+  ylim=c(-1,0.25)
   p1 = resid.data %>% ggplot(aes(x=rntHbA1c,y=y.resid,color=Sex)) + geom_smooth(method="gam") + 
     geom_vline(xintercept = c(cutoffM,cutoff,cutoffF), color=c("darkblue","black","darkred"), linetype="dotted")+
-    ylab(NULL)  + theme(legend.position='top') + xlim(range(resid.data$rntHbA1c,resid.data$rntHbA1c2))
+    ylab(NULL)  + theme(legend.position=c(0.05,0.05),legend.justification = c('left','bottom')) + 
+    xlim(range(resid.data$rntHbA1c,resid.data$rntHbA1c2))
   p2 = resid.data %>% ggplot(aes(x=rntHbA1c2,y=y.resid,color=Sex)) + geom_smooth(method="gam") + 
     geom_vline(xintercept = c(cutoffM,cutoff,cutoffF), color=c("darkblue","black","darkred"), linetype="dotted")+
     ylab(NULL) + theme(legend.position='none') + xlim(range(resid.data$rntHbA1c,resid.data$rntHbA1c2))
   p3 = resid.data %>% ggplot(aes(x=rntHbA1c2,y=y.resid)) + geom_smooth(method="gam") + 
     geom_vline(xintercept = c(cutoffM,cutoff,cutoffF), color=c("darkblue","black","darkred"), linetype="dotted") +
     ylab(NULL) + xlim(range(resid.data$rntHbA1c,resid.data$rntHbA1c2))
-  ((p1+ ggtitle(roii))/(p2+xlab(NULL)+ylab('adjusted mean cortical thickness'))/p3)
+  design.layout='
+  12
+  33
+  '
+  p.patched = (p1+(p2+ylab(NULL)))+p3 + plot_layout(design=design.layout) + coord_cartesian(ylim=ylim)
+  p.patched + plot_annotation(
+    title = paste0('Adjusted mean cortical thickness vs. HbA1c'),
+    subtitle = roii,
+    caption = 'compare the sex-differential vs. common breakpoints',
+    tag_levels = 'A'
+  )
 }
