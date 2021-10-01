@@ -7,7 +7,7 @@ Examine association between glycated hemoglobin and cortical thickness in adults
   
 - Methods
   1. Sample characteristics
-      1. Sample selection: individuals with HbA1c and MRI data (data download date: XX-XX-2020)
+      1. Sample selection: individuals with HbA1c (at baseline) and MRI data (at imaging session: data download date: Apr 1, 2021)
   2. Correlation structure among variables  
   3. Association between HbA1c and MCT - by segmented regression analysis
       1. Base model: MCT ~ HbA1c + Age + Sex + MRI site
