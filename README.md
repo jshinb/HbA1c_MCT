@@ -22,7 +22,7 @@ Examine association between glycated hemoglobin and cortical thickness in adults
       3. Script: obtain PC1 in males and females separately, look at the distributions, run GWAS
       4. We further restricted to SNPs with minor allele frequency (MAF) > 0.1% and HWE p-value > 1e-10 in the 337,199 QC positive individuals, an INFO score > 0.8 (directly from UK Biobank), leaving 10.8 million SNPs for analysis. [http://www.nealelab.is/blog/2017/9/11/details-and-considerations-of-the-uk-biobank-gwas]
   7. Regional association plots (LocusZoom)
-  8. Genomic landscape
+  8. Genomic landscape [Geonome Browser]
   9. Look up genes associated with the top locus in the brain cortex (GTEx database)
   10. Identify genes that are co-expressed with each of the eQTL-genes in brain cortex during adulthood (BrainSpan and harmonized database [by Nadine])
   11. Over-representation tests for the co-expressed genes of each eQTL-gene.
