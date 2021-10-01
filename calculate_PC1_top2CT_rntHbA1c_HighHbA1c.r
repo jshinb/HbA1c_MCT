@@ -1,15 +1,12 @@
 #------------------------------------------------------------------------------#
-# Created: Sep 23, 2021
+# Created: Sep 30, 2021
 # 
-# This script will fit segmented regression models roiMCTadj ~ HbA1c to the data.
-# 
-# segmented linear regression model with the adjusted MCT in males and females separately.
-#
-# 1. Should I do it in the sex-combined sample?
-# 2. I could not reproduce the 'alladj' results - Why?
-# Assuming that the slopes differ at the same break point identified in MCT
+# This script will 
+# 1. calculate PC1 of top2CT and rntHbA1c in High-HbA1c group
+# 2. generate PLINK input files (that will be run in SciNet)
 # 
 #------------------------------------------------------------------------------#
+
 options(stringsAsFactors = F)
 x = c('stringr','tidyverse','dplyr',
       'here','data.table','psych',#table
@@ -155,20 +152,37 @@ to_write$Sex_Male0 = 0
 to_write$Sex_Male0[to_write$Sex=="Female"] = 1
 
 #6. Write pheno and covfiles for PLINK analysis =========================================
+# original: untransformed
+# sensitivity: rnt-transformed PC1
 pheno_out = to_write %>% mutate(FID = eid) %>% 
   dplyr::rename(IID = eid) %>%
   dplyr::select(FID,IID,top2.MCT_adjBase,PC1,Sex_Male0,Sex)
 
-library(psych)
 describe(pheno_out)
+# original
+# write_delim(subset(pheno_out,select=c(FID,IID,top2.MCT_adjBase,PC1)),
+#             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_all.txt',delim=" ")
+# 
+# write_delim(subset(pheno_out,Sex=="Male",select=c(FID,IID,top2.MCT_adjBase,PC1)),
+#             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_male.txt',delim=" ")
+# 
+# write_delim(subset(pheno_out,Sex=="Female",select=c(FID,IID,top2.MCT_adjBase,PC1)),
+#             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_female.txt',delim=" ")
 
-write_delim(subset(pheno_out,select=c(FID,IID,top2.MCT_adjBase,PC1)),
+# sensitivity - with rntPC1
+pheno_out = pheno_out %>% mutate(PC1.org = PC1)
+pheno_out = pheno_out %>% mutate(PC1 = rntransform(PC1.org))
+p1 = ggplot(pheno_out,aes(x=PC1.org)) + geom_histogram()
+p2 = ggplot(pheno_out,aes(x=PC1)) + geom_histogram()
+p1+p2
+
+write_delim(subset(pheno_out,select=c(FID,IID,PC1)),
             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_all.txt',delim=" ")
 
-write_delim(subset(pheno_out,Sex=="Male",select=c(FID,IID,top2.MCT_adjBase,PC1)),
+write_delim(subset(pheno_out,Sex=="Male",select=c(FID,IID,PC1)),
             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_male.txt',delim=" ")
 
-write_delim(subset(pheno_out,Sex=="Female",select=c(FID,IID,top2.MCT_adjBase,PC1)),
+write_delim(subset(pheno_out,Sex=="Female",select=c(FID,IID,PC1)),
             file='pheno_PC1_HighHbA1c_top2_CT_adjBase_female.txt',delim=" ")
 
 write_delim(subset(pheno_out,select=c(FID,IID,Sex_Male0)),
@@ -179,32 +193,3 @@ cleaned_fam = fread('~/OneDrive - SickKids/ukbb/data/ukb37194_cleaned_famfile.cs
 head(cleaned_fam)
 write_delim(subset(cleaned_fam,V1 %in% pheno_out$FID),
             'famfile_PC1_HighHbA1c_adjBase_all.fam',delim=" ")
-# 7. Run GWAS with PLINK
-## ----locuszoom, eval=F-------------------------------------------------------
-## resdir='~/OneDrive - SickKids/GWAS_results/ukbb_th_crp_hba1c/adjBase_top2_CT_20210616'
-## setwd(resdir)
-## fs='cleaned_HighHbA1c_adjBase_all_PC1.glm.linear.txt.gz
-## cleaned_HighHbA1c_adjBase_male_PC1.glm.linear.txt.gz
-## cleaned_HighHbA1c_adjBase_female_PC1.glm.linear.txt.gz'
-## fs =unlist(str_split(fs,"\n"))
-## 
-## 
-## get_gwas_sub = function(x,chr,b0,b1){
-##   dd = fread(x)
-##   dd.sub = subset(dd,CHROM==chr&(POS>=b0 & POS<b1))
-##   write_tsv(dd.sub,str_replace(x,"cleaned","LocusZoom"))
-## }
-## 
-## chr=6
-## b0=32578127-10^6
-## b1=32578127+10^6
-## lapply(fs,get_gwas_sub,chr=chr,b0=b0,b1=b1)
-## c((32578127-250000),(32578127+250000))/10^6
-
-
-## ----rg_PC1------------------------------------------------------------------
-#https://jinghuazhao.github.io/Omics-analysis/BMI/
-
-
-## ----PRS_AD_BMI--------------------------------------------------------------
-# https://librarysearch.library.utoronto.ca/discovery/fulldisplay?docid=cdi_swepub_primary_oai_prod_swepub_kib_ki_se_232691445&context=PC&vid=01UTORONTO_INST:UTORONTO&lang=en&search_scope=UTL_AND_CI&adaptor=Primo%20Central&tab=Everything&query=any,contains,A%20principal%20component%20approach%20to%20improve%20association%20testing%20with%20polygenic%20risk%20scores&offset=0
