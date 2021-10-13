@@ -87,7 +87,7 @@ gwasres_dir='~/OneDrive - SickKids/GWAS_results/ukbb_th_crp_hba1c/HighHbA1c_top2
 setwd(gwasres_dir)
 dir()
 
-resfiles=c("HighHbA1c_adjBase_all_PC1_with_a1freq.glm.linear.txt.gz")
+resfiles=c("HighHbA1c_adjBase_all_PC1.glm.linear.txt.gz")
 groups = str_split(resfiles,"_",simplify = T)[,1]
 phenos = str_remove(str_split(resfiles,"_",simplify = T)[,4],".glm.linear.txt.gz")
 adj="age_sex_genoPC"
