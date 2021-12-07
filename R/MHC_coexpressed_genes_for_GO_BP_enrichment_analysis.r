@@ -20,9 +20,17 @@ get_cor_pearson = function(i) {
   pearson_r = cor(subset(t_gene_expression,select=select.cols[i]),t_gene_expression)
   pearson_r
 }
+
+get_cor_spearman_pvalue = function(x,i) {
+  y=unlist(subset(t_gene_expression,select=select.cols[i]))
+  pval = cor.test(x,y,method="s")$
+    p.value
+  pval
+}
+
 #------------------------------------------------------------------------------#
 
-setwd('~/Downloads/')
+setwd('/Users/jshin/OneDrive\ -\ SickKids/ukbb_insulin_resistance/PANTHER_HLAgenes')
 gene_colums = fread('genes_matrix_csv/columns_metadata.csv')
 gene_rows = fread('genes_matrix_csv/rows_metadata.csv')
 head(gene_colums)
@@ -52,13 +60,13 @@ select.cols = names(gene_expression)[which(cortex_ind & adult_ind)]
 gene_expression = subset(gene_expression,select=select.cols)
 
 ##
-gene.names = 'HLA-DQA2
+gene.names <- 'HLA-DQA2
 HLA-DQB1-AS1
 HLA-DQB2
 HLA-DRB1
 HLA-DRB5
 HLA-DRB6'
-gene.names = unlist(str_split(gene.names,'\n'))
+gene.names<- MHC_genes <- unlist(str_split(gene.names,'\n'))
 
 t_gene_expression = data.table(t(gene_expression) )
 sd.gene.expression = apply(t_gene_expression,2,sd)
@@ -81,12 +89,28 @@ cormat.test = data.table(ensembl_gene_id=gene_rows_adult_cortex$ensembl_gene_id,
 subset(cormat.test,gene_symbol %in% gene.rows.test$gene_symbol)
 names(cormat.test)[-c(1:2)] = gene.rows.test$gene_symbol
 
+#
+cormat.test.p = apply(t_gene_expression,2,get_cor_spearman_pvalue,i=1)
+for(i in 2:nrow(gene.rows.test)){
+  print(i)
+  tmp.p = apply(t_gene_expression,2,get_cor_spearman_pvalue,i=i)
+  cormat.test.p = cbind(cormat.test.p,tmp.p)
+}
+
+# cormat.test.p = data.table(t(cormat.test.p))
+# cormat.test.p = data.table(ensembl_gene_id=gene_rows_adult_cortex$ensembl_gene_id,
+#                          gene_symbol=gene_rows_adult_cortex$gene_symbol,
+#                          cormat.test)
+
+subset(cormat.test.p,gene_symbol %in% gene.rows.test$gene_symbol)
+names(cormat.test.p)[-c(1:2)] = gene.rows.test$gene_symbol
+
 #--------------- approach 2
 library(tidyr)
 cormat_long <- gather(cormat.test, key=MHC_genes, value = r, `HLA-DRB1`:`HLA-DQA2`,factor_key=FALSE)
 head(cormat_long )
 hist(cormat_long$r)
-print(cormat.quantile <- quantile(cormat_long$r, probs=c(0.005,0.995)))
+print(cormat.quantile <- quantile(cormat_long$r, probs=c(0.01,0.99)))
 
 poscor_genes = unique(cormat_long$ensembl_gene_id[cormat_long$r> cormat.quantile[2]]);print(length(poscor_genes))#1220
 negcor_genes = unique(cormat_long$ensembl_gene_id[cormat_long$r< cormat.quantile[1]]);print(length(negcor_genes))#1224
@@ -99,7 +123,7 @@ write.table(negcor_genes,"~/Downloads/negcor_MHC_genes_v2.txt",
 
 mat_t_gene_expression = as.matrix(t_gene_expression)
 # random.quantile = NULL
-for(i in 11:5000){
+for(i in 1:5000){
   random.genes = sample(names(t_gene_expression),6,replace = F)
   r.random = apply(mat_t_gene_expression[,random.genes],2,cor,y=mat_t_gene_expression)
   write.header = F
