@@ -54,7 +54,7 @@ cat("---------------------------- Female ----------------------------\n",file=of
 capture.output(summary(tab2),file=ofile,append=T)
 capture.output(print(tab2),file=ofile,append=T)
 capture.output(print(tab2,nonnormal = c("Age_MRI", "BMI_recruitment", "SBP", "DBP",
-"HbA1c2", "fasting_time_hours_0","Time","MCT","BrainVolume", "ICV"))), 
+"HbA1c2", "fasting_time_hours_0","Time","MCT","BrainVolume", "ICV")), 
 file=ofile,append=T)
 
 #male -------------------------------------------------------------------------
