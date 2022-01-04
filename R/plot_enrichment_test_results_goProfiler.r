@@ -3,7 +3,9 @@
 # Created on Dec 8, 2021
 # To create bar graphs on Figure 5 (working-version)
 # This may change later and not be used in the end (but just in case) 
-#
+# 
+# Modified on Jan 4, 2022
+# 
 ###############################################################################
 
 rm(list=ls());gc()
@@ -45,7 +47,7 @@ create_enrichment_barplot <- function(genei,direction,go,panel.label=NULL){
   fname=paste("gProfiler_12-8-2021",direction,"coexp",genei,sep="_")
   fname=paste(fname,"csv",sep=".")
   if( file.exists(fname) ){
-    d=subset(fread(fname),source=="GO:BP");dim(d)
+    d=subset(fread(fname),source=="GO:BP" & (term_size >=10 & term_size <250));dim(d)
     if(nrow(d)>0){
       d_terms = d$term_id
       # get the numbers of child terms for each GO-BP terms
@@ -99,8 +101,8 @@ create_enrichment_barplot <- function(genei,direction,go,panel.label=NULL){
 }
 
 # -----------------------------------------------------------------------------
-gene_names = c("HLA-DRB5", "HLA-DRB1", "HLA-DQA2", "HLA-DQB2")
-gene_names = factor(unique(gene_names),levels=c("HLA-DRB5", "HLA-DRB1", "HLA-DQA2", "HLA-DQB2"))
+gene_names = c("HLA-DRB5", "HLA-DRB1", "HLA-DQB2", "HLA-DQA2")
+gene_names = factor(unique(gene_names),levels=gene_names)
 gene_names = sort(gene_names)
 go = getGeneOnto()
 #inputs-----------------------------------------------------------------------#
@@ -132,15 +134,15 @@ print(p_DR)
 dev.off()
 
 # DQ genes
-h_DQ = c(pos_DQA2 = nrow(p_pos[[3]]$d_specific),
-         neg_DQA2 = 2,
-         pos_DQB2 = 2,
-         neg_DQB2 = nrow(p_neg[[4]]$d_specific))
+h_DQ = c(pos_DQB2 = 2,
+         neg_DQB2 = nrow(p_neg[["HLA-DQB2"]]$d_specific),
+         pos_DQA2 = nrow(p_pos[["HLA-DQA2"]]$d_specific),
+         neg_DQA2 = 2)
 
-p_DQ = p_pos[[3]]$p+theme(legend.position = "n")+ylab(NULL)+
-  plot_spacer()+ggtitle("tmp") +
+p_DQ = plot_spacer()+ 
+  (p_neg[["HLA-DQB2"]]$p+theme(legend.position = "n") + ylab(NULL)) +
+  p_pos[["HLA-DQA2"]]$p+theme(legend.position = "n") +
   plot_spacer()+
-  p_neg[[4]]$p+theme(legend.position = "n")+
   plot_layout(heights = h_DQ/2)
 
 png(paste("HLA-DQ_most_specific_enriched_terms_",Sys.Date(),".png",sep=''),
