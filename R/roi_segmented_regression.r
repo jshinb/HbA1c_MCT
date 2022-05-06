@@ -24,12 +24,12 @@ get_results = function(fitC,fitM,fitF,fitI){
   var.statC = sum(vcov(fitC)[vnames,vnames])
   slopeHC =sum(summary(fitC)$coef[vnames,"Estimate"])
   wald.testC  = (slopeHC/sqrt(var.statC))^2
-  pC = pchisq(wald.testC,df = 1,lower.tail = F)
+  pC = pchisq(wald.testC,df = length(vnames),lower.tail = F)
   
   var.statM = sum(vcov(fitM)[-1,-1])
   slopeHM =sum(summary(fitM)$coef[vnames,"Estimate"])
   wald.testM  = (slopeHM/sqrt(var.statM))^2
-  pM = pchisq(wald.testM,df = 1,lower.tail = F)
+  pM = pchisq(wald.testM,df = length(vnames),lower.tail = F)
   
   var.statF = sum(vcov(fitF)[-1,-1])
   slopeHF =sum(summary(fitF)$coef[vnames,"Estimate"])
@@ -41,9 +41,9 @@ get_results = function(fitC,fitM,fitF,fitI){
   slopeI = sum(summary(fitI)$coef[iterm_name,"Estimate"])
   var.statI = sum(vcov(fitI)[iterm_index,iterm_index])
   wald.testI  = (slopeI/sqrt(var.statI))^2
-  pI = pchisq(wald.testI,df = 1,lower.tail = F) #
+  pI = pchisq(wald.testI,df = length(iterm_name),lower.tail = F) #
   
-  resC = data.table(Term = c("Intercept","beta.N","beta.diff.HN"),summary(fitC)$coef[,-3]) %>% rename(beta="Estimate", SE="Std. Error",P="Pr(>|t|)")
+  resC = data.table(Term = c("Intercept","SexFemale","beta.N","beta.diff.HN"),summary(fitC)$coef[,-3]) %>% rename(beta="Estimate", SE="Std. Error",P="Pr(>|t|)")
   resM = data.table(Term = c("Intercept","beta.N","beta.diff.HN"),summary(fitM)$coef[,-3]) %>% rename(beta="Estimate", SE="Std. Error",P="Pr(>|t|)")
   resF = data.table(Term = c("Intercept","beta.N","beta.diff.HN"),summary(fitF)$coef[,-3])%>% rename(beta="Estimate",SE="Std. Error",P="Pr(>|t|)")
   
@@ -64,11 +64,10 @@ get_results = function(fitC,fitM,fitF,fitI){
   res = rbind(resC,resM,resF,resIN,resIH)
   res
 }
-
 fit_function = function(yname,data,adj){
   analdat = data
   analdat$y = analdat[[yname]]
-  fitC = lm(y ~ rntHbA1c2 + x2.star, data=analdat) #does this make sense?
+  fitC = lm(y ~ Sex + rntHbA1c2 + x2.star, data=analdat) #does this make sense?
   fitM = lm(y ~ rntHbA1c2 + x2.star, data=analdat, subset=Sex=="Male")
   fitF = lm(y ~ rntHbA1c2 + x2.star, data=analdat, subset=Sex=="Female")
   fitI = lm(y ~ Sex*(rntHbA1c2 + x2.star), data=analdat)
@@ -100,11 +99,12 @@ d_MRI1 = fread('ThicknessData.csv')
 
 ## ----roi_ctx-----------------------------------------------------------------
 group.levels = c("Sex-Combined","Male","Female")
-d_MRI2 = d_MRI2 %>% rename(eid=ID)
+d_MRI2 = d_MRI2 %>% dplyr::rename(eid=ID)
 str(d_MRI2)
 
 cols_extract = c('eid',names(d_MRI1)[str_detect(names(d_MRI1),"lh_")|str_detect(names(d_MRI1),"rh_")])
-d_MRI = unique(rbind(subset(d_MRI1,!eid%in%d_MRI2$eid, select=cols_extract),subset(d_MRI2,select=cols_extract)))#38,664
+d_MRI = unique(rbind(subset(d_MRI1,!eid%in%d_MRI2$eid, select=cols_extract),
+                     subset(d_MRI2,select=cols_extract)))#38,664
 
 roi = str_split(names(d_MRI)[str_detect(names(d_MRI),"lh_")],"_",simplify=T)[,2]
 mean.ctx = subset(d_MRI,select='eid')
@@ -134,10 +134,12 @@ select.eid = c(M.N.eid,
 
 rm(roii,fit_BaseF,fit_BaseM)
 res_Base_allroi = NULL
+p_list = vector("list",34)
 for(i in 1:34){
   roii=roi[i]
   analdat = subset(idata,eid%in% select.eid,
-                   select=c('eid',roii,'Time.c','Sex','Age.c',"MRI_Site","HbA1c.Level3")) %>%  dplyr::rename('y'=roii)
+                   select=c('eid',roii,'Time.c','Sex','Age.c',"MRI_Site","HbA1c.Level3","rntHbA1c")) %>%  
+    dplyr::rename('y'=roii)
   tab = table(analdat$Sex,analdat$HbA1c.Level3)
   base::prop.table(tab)
   analdat = na.omit(analdat)
@@ -179,7 +181,7 @@ for(i in 1:34){
 
 res_High = subset(res_Base_allroi,Term %in% c("beta.H","beta.IH"))
 res_High.C = subset(res_High,Sex=="Sex-Combined")
-res_High.C = res_High.C[order(res_High.C$beta),]
+res_High.C = res_High.C%>% arrange(beta)#[order(res_High.C$beta),]
 roi.level = res_High.C$roi
 res_High$roi = factor(res_High$roi,levels=(roi.level))
 res_High = res_High[order(res_High$roi),]
@@ -230,7 +232,7 @@ signif_label="FDR-P<0.05"
 
 # plot: create plot data frame ------------------------------------------------
 plotd = res
-plotd$roi <- factor(plotd$roi,levels=rev(roi.level))
+plotd$roi <- factor(plotd$roi,levels=roi.level)#factor(plotd$roi,levels=rev(roi.level))
 plotd$p.label = as.character(format(plotd$P,scientific = T,digits = 3))
 plotd$p.label = paste("p=",plotd$p.label,sep='')
 plotd <- plotd[order(plotd$roi),]
@@ -240,97 +242,108 @@ yintercept = 0
 pos <- position_dodge(width=0)
 ggp <- subset(plotd,!is.na(Sex)) %>% ggplot(aes(y=beta, x=roi, ymin=CI95L, ymax=CI95U,
                                                 group=Sex, color=Sex, linetype=Sex,
-                                                shape=signif,fill=signif)) +
-  geom_point(size=6, stroke=1, position=pos) +
+                                                shape=Sex,fill=signif)) +
   geom_path(aes(group=Sex), position = pos) +
-  geom_errorbar(position=pos, width=0.25,size=1) + 
-  geom_hline(yintercept=yintercept, size=2) +
-  scale_color_manual(values=c("Sex-Combined"="black","Male"=scales::alpha('darkblue',0.5),"Female"=scales::alpha("darkred",0.5))) +
-  scale_shape_manual(values=c('FDR-P<0.05'=16,'FDR-P>=0.05'=21)) +
-  scale_fill_manual(values=c('FDR-P<0.05'='black','FDR-P>=0.05'='white')) +
+  geom_hline(yintercept=yintercept, size=0.75, color="darkgrey") +
+  scale_color_manual(values=c("Sex-Combined"="black","Male"=scales::alpha('darkblue',0.6),"Female"=scales::alpha("darkred",0.6))) +
+  scale_linetype_manual(values=c("Sex-Combined"="solid","Male"="dashed","Female"="dashed")) +
+  scale_shape_manual(values=c("Sex-Combined"=21,"Male"=22,"Female"=24)) +
+  scale_fill_manual(values=c('FDR-P<0.05'=grey(0.2),'FDR-P>=0.05'='white')) +
+  geom_errorbar(position=pos, width=1,size=0.5) + 
+  geom_point(size=2, stroke=0.75, position=pos) +
   #scale_y_continuous( limits = ylim, breaks = ylim.breaks) +
-  coord_flip() +
+  # coord_flip() +
   theme_bw() +
   #ggtitle(myggtitle) +
   labs(y="Effect estimates in SD-units (95% CI)") +
   theme(#panel.grid.major.y = element_line(colour = c("gray90", "gray90"), size=0.4),
-    panel.grid.major.x = element_line(colour = "gray60", linetype="dashed", size=0.4),
+    panel.grid.major.x = element_line(colour = "gray60", linetype="dotted", size=0.4),
     panel.grid.minor=element_blank(),
     panel.border = element_rect(color=NA),
     panel.spacing.x = unit(0.8, "lines"),
     panel.spacing.y = unit(0.8, "lines"),
     plot.title = element_text(size=12, hjust=0.5),
-    strip.text.x = element_text(size=16, hjust=0.5, angle=0, face="bold"),
-    strip.text.y = element_text(size=12, hjust=0, angle=30, face="bold"),#not being used
-    strip.background = element_rect(fill=NA, color=NA),
+    #strip.text.x = element_text(size=16, hjust=0.5, angle=0, face="bold"),
+    #strip.text.y = element_text(size=12, hjust=0, angle=30, face="bold"),#not being used
+    #strip.background = element_rect(fill=NA, color=NA),
     axis.line = element_line(color="black"),
     axis.ticks = element_blank(),
     axis.title.y=element_blank(),
-    axis.text.y=element_text(size=24),
-    axis.title.x=element_text(size=20),
-    axis.text.x=element_text(size=20),
+    axis.text.y=element_text(size=12),
+    axis.title.x=element_text(size=12),
+    axis.text.x=element_text(size=12, angle = -45, hjust=0,vjust=0.5),
     legend.position="top",
     legend.title=element_blank(),
     # legend.title=element_text(size=16),
-    legend.text = element_text(size=16)
-  )
-
-# plot: annotation ----------------------------------------------------------------------
-geom.text.size = 8
-theme.size = (14/5) * geom.text.size
-
-## sex-combined
-ann_text <- subset(plotd, Sex=="Sex-Combined")
-ann_text <- ann_text[order(ann_text$roi),]
-p <- ggp + 
-  geom_text(data = ann_text,label = ann_text$p.label,
-            mapping = aes(x = roi, y = 0.38, label = label),
-            colour="grey35",size=geom.text.size,  
-            vjust = 0.5, hjust = 0.5,position = pos)
-rm(ann_text)
-
-## male
-ann_text <- subset(plotd, Sex=="Male")
-ann_text <- ann_text[order(ann_text$roi),]
-p <- p + 
-  geom_text(data = ann_text,label = ann_text$p.label,
-            mapping = aes(x = roi, y = 0.58, label = label),
-            colour="grey35",size=geom.text.size,  
-            vjust = 0.5, hjust = 0.5,position = pos)
-rm(ann_text)
-
-## female
-ann_text <- subset(plotd, Sex=="Female")
-ann_text <- ann_text[order(ann_text$roi),]
-p <- p + 
-  geom_text(data = ann_text,label = ann_text$p.label,
-            mapping = aes(x = roi, y = 0.78, label = label),
-            colour="grey35",size=geom.text.size,  
-            vjust = 0.5, hjust = 0.5,position = pos) 
-rm(ann_text)
-
-## interaction
-ann_text <- subset(plotd, is.na(Sex))
-ann_text <- ann_text[order(ann_text$roi),]
-p <- p + 
-  geom_text(data = ann_text,label = ann_text$p.label,
-            mapping = aes(x = roi, y = 0.98, label = label),
-            colour="grey35",size=geom.text.size,  
-            vjust = 0.5, hjust = 0.5,position = pos)
-rm(ann_text)
-
-ggp1 = p + 
-  scale_y_continuous(limits =c(-0.515,1.0), 
-                     breaks = 0.1*c(-5,-4,-3,-2,-1,1,2,3)) +
-  guides(fill = guide_legend(override.aes = list(shape = 21,size=4)),
-         color = guide_legend(override.aes = list(size=4,linetype=1))) + 
-  theme(legend.key.size = unit(1.5, "cm"))
-
-# plot: create png file -------------------------------------------------------
-png(paste('Plots/HbA1cLevels_roi_base_',Sys.Date(),'.png',sep=''),
-    width=(12*1.75),height=(12*1.5),units='in',res=300)
+    plot.margin = unit(c(11,110,1,5.5),"pt"),#t, r, b, l
+    legend.text = element_text(size=14)
+  ) + 
+  xlab(NULL)
+ggp1 = ggp + ylim(-0.525,0.3) + theme(legend.position = 'none')
+#2022-02-08
+png(paste('Plots/HbA1cLevels_roi_base_landscape_',Sys.Date(),'.png',sep=''),
+    height=5.5,width=11,units='in',res=300)
 print(ggp1+theme(strip.text.y.left = element_text(angle = 0,size=24)))
 dev.off()
+
+# plot: annotation ----------------------------------------------------------------------
+dont.run = function(){
+  geom.text.size = 8
+  theme.size = (14/5) * geom.text.size
+  
+  ## sex-combined
+  ann_text <- subset(plotd, Sex=="Sex-Combined")
+  ann_text <- ann_text[order(ann_text$roi),]
+  p <- ggp + 
+    geom_text(data = ann_text,label = ann_text$p.label,
+              mapping = aes(x = roi, y = 0.38, label = label),
+              colour="grey35",size=geom.text.size,  
+              vjust = 0.5, hjust = 0.5,position = pos)
+  rm(ann_text)
+  
+  ## male
+  ann_text <- subset(plotd, Sex=="Male")
+  ann_text <- ann_text[order(ann_text$roi),]
+  p <- p + 
+    geom_text(data = ann_text,label = ann_text$p.label,
+              mapping = aes(x = roi, y = 0.58, label = label),
+              colour="grey35",size=geom.text.size,  
+              vjust = 0.5, hjust = 0.5,position = pos)
+  rm(ann_text)
+  
+  ## female
+  ann_text <- subset(plotd, Sex=="Female")
+  ann_text <- ann_text[order(ann_text$roi),]
+  p <- p + 
+    geom_text(data = ann_text,label = ann_text$p.label,
+              mapping = aes(x = roi, y = 0.78, label = label),
+              colour="grey35",size=geom.text.size,  
+              vjust = 0.5, hjust = 0.5,position = pos) 
+  rm(ann_text)
+  
+  ## interaction
+  ann_text <- subset(plotd, is.na(Sex))
+  ann_text <- ann_text[order(ann_text$roi),]
+  p <- p + 
+    geom_text(data = ann_text,label = ann_text$p.label,
+              mapping = aes(x = roi, y = 0.98, label = label),
+              colour="grey35",size=geom.text.size,  
+              vjust = 0.5, hjust = 0.5,position = pos)
+  rm(ann_text)
+  
+  ggp1 = p + 
+    scale_y_continuous(limits =c(-0.515,1.0), 
+                       breaks = 0.1*c(-5,-4,-3,-2,-1,1,2,3)) +
+    guides(fill = guide_legend(override.aes = list(shape = 21,size=4)),
+           color = guide_legend(override.aes = list(size=4,linetype=1))) + 
+    theme(legend.key.size = unit(1.5, "cm"))
+  
+  # plot: create png file -------------------------------------------------------
+  png(paste('Plots/HbA1cLevels_roi_base_',Sys.Date(),'.png',sep=''),
+      width=(12*1.75),height=(12*1.5),units='in',res=300)
+  print(ggp1+theme(strip.text.y.left = element_text(angle = 0,size=24)))
+  dev.off()
+}#dont.run
 
 # table: write out a table ----------------------------------------------------
 profiles_to_write = subset(res_Base_Horizontal,select=c(roi,beta.x,beta.y,beta)) %>% 
